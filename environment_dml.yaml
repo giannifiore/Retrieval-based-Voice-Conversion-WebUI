@@ -146,7 +146,8 @@ dependencies:
       - bitarray==2.7.4
       - cython==0.29.35
       - decorator==5.1.1
-      - fairseq==0.12.2
+      - fairseq==0.12.2; python_version < "3.11"
+      - fairseq @ git+https://github.com/One-sixth/fairseq.git; python_version >= "3.11"
       - faiss-cpu==1.7.4
       - filelock==3.12.0
       - hydra-core==1.0.7

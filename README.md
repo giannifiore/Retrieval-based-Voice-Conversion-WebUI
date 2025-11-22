@@ -88,6 +88,8 @@ pip install -r requirements-amd.txt
 pip install -r requirements-ipex.txt
 ```
 
+> **Python 3.11+/3.12+ 提示**：自带的 `requirements*.txt` 会在较新的 Python 版本上自动安装来自 [One-sixth/fairseq](https://github.com/One-sixth/fairseq) 的补丁版 `fairseq`，以规避 `mutable default ... CommonConfig` 报错；在 Python 3.10 及以下仍保留官方 `fairseq==0.12.2`。
+
 #### 2. 通过 poetry 来安装依赖
 安装 Poetry 依赖管理工具，若已安装则跳过。参考自: https://python-poetry.org/docs/#installation
 ```bash
