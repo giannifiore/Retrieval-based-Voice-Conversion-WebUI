@@ -19,10 +19,14 @@ else:
     version = sys.argv[6]
     is_half = sys.argv[7].lower() == "true"
 import fairseq
+from fairseq.data.dictionary import Dictionary
 import numpy as np
 import soundfile as sf
 import torch
 import torch.nn.functional as F
+import torch.serialization
+
+torch.serialization.add_safe_globals([Dictionary])
 
 if "privateuseone" not in device:
     device = "cpu"
