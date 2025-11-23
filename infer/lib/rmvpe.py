@@ -1,6 +1,8 @@
 from io import BytesIO
 import os
+import shutil
 from typing import List, Optional, Tuple
+import urllib.request
 import numpy as np
 import torch
 
@@ -24,6 +26,35 @@ from scipy.signal import get_window
 import logging
 
 logger = logging.getLogger(__name__)
+
+RMVPE_PT_URL_DEFAULT = (
+    "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/rmvpe.pt"
+)
+RMVPE_ONNX_URL_DEFAULT = (
+    "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/rmvpe.onnx"
+)
+
+
+def _ensure_rmvpe_file(path: str, url: str) -> str:
+    """Ensure RMVPE asset exists locally; download if missing."""
+    resolved_path = os.path.abspath(os.path.expanduser(path))
+    os.makedirs(os.path.dirname(resolved_path), exist_ok=True)
+    if os.path.isfile(resolved_path):
+        return resolved_path
+    logger.info("Downloading RMVPE weights from %s", url)
+    try:
+        with urllib.request.urlopen(url) as response, open(resolved_path, "wb") as dst:
+            shutil.copyfileobj(response, dst)
+    except Exception as err:  # pylint: disable=broad-exception-caught
+        raise RuntimeError(
+            f"Failed to download RMVPE weights from {url}. "
+            f"Manually place the file at {resolved_path} and retry."
+        ) from err
+    return resolved_path
+
+
+def _get_rmvpe_root() -> str:
+    return os.environ.get("rmvpe_root") or os.path.join(os.getcwd(), "assets/rmvpe")
 
 
 class STFT(torch.nn.Module):
@@ -497,6 +528,8 @@ class RMVPE:
         self.resample_kernel = {}
         self.resample_kernel = {}
         self.is_half = is_half
+        rmvpe_pt_url = os.environ.get("RMVPE_PT_URL", RMVPE_PT_URL_DEFAULT)
+        model_path = _ensure_rmvpe_file(model_path, rmvpe_pt_url)
         if device is None:
             device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.device = device
@@ -506,8 +539,13 @@ class RMVPE:
         if "privateuseone" in str(device):
             import onnxruntime as ort
 
+            rmvpe_root = _get_rmvpe_root()
+            onnx_url = os.environ.get("RMVPE_ONNX_URL", RMVPE_ONNX_URL_DEFAULT)
+            onnx_path = _ensure_rmvpe_file(
+                os.path.join(rmvpe_root, "rmvpe.onnx"), onnx_url
+            )
             ort_session = ort.InferenceSession(
-                "%s/rmvpe.onnx" % os.environ["rmvpe_root"],
+                onnx_path,
                 providers=["DmlExecutionProvider"],
             )
             self.model = ort_session
