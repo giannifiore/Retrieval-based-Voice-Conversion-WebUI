@@ -40,6 +40,7 @@ def _ensure_rmvpe_file(path: str, url: str) -> str:
     resolved_path = os.path.abspath(os.path.expanduser(path))
     os.makedirs(os.path.dirname(resolved_path), exist_ok=True)
     if os.path.isfile(resolved_path) and os.path.getsize(resolved_path) > 0:
+        logger.debug("RMVPE asset already present: %s", resolved_path)
         return resolved_path
     logger.info("Downloading RMVPE weights from %s", url)
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -552,8 +553,15 @@ class RMVPE:
         self.resample_kernel = {}
         self.resample_kernel = {}
         self.is_half = is_half
+        init_t0 = ttime()
         rmvpe_pt_url = os.environ.get("RMVPE_PT_URL", RMVPE_PT_URL_DEFAULT)
         model_path = _ensure_rmvpe_file(model_path, rmvpe_pt_url)
+        logger.info(
+            "Preparing RMVPE model from %s (half=%s, use_jit=%s)",
+            model_path,
+            is_half,
+            use_jit,
+        )
         if device is None:
             device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.device = device
@@ -622,9 +630,14 @@ class RMVPE:
                 else:
                     self.model = get_jit_model()
             else:
-                self.model = get_default_model()
+            self.model = get_default_model()
 
             self.model = self.model.to(device)
+        logger.info(
+            "RMVPE model ready on %s in %.2fs",
+            self.device,
+            ttime() - init_t0,
+        )
         cents_mapping = 20 * np.arange(360) + 1997.3794084376191
         self.cents_mapping = np.pad(cents_mapping, (4, 4))  # 368
 
