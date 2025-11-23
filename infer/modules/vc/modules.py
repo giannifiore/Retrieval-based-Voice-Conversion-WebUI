@@ -1,5 +1,6 @@
 import traceback
 import logging
+from time import time as ttime
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +163,13 @@ class VC:
             return "You need to upload an audio", None
         f0_up_key = int(f0_up_key)
         try:
+            logger.info(
+                "vc_single start | sid=%s | f0=%s | index=%s | resample=%s",
+                sid,
+                f0_method,
+                file_index or file_index2 or "none",
+                resample_sr,
+            )
             audio = load_audio(input_audio_path, 16000)
             audio_max = np.abs(audio).max() / 0.95
             if audio_max > 1:
@@ -205,6 +213,14 @@ class VC:
                 protect,
                 f0_file,
             )
+            logger.info(
+                "vc_single finished | sid=%s | total=%.2fs (npy=%.2f f0=%.2f infer=%.2f)",
+                sid,
+                sum(times),
+                times[0],
+                times[1],
+                times[2],
+            )
             if self.tgt_sr != resample_sr >= 16000:
                 tgt_sr = resample_sr
             else:
@@ -221,7 +237,7 @@ class VC:
             )
         except:
             info = traceback.format_exc()
-            logger.warning(info)
+            logger.exception("vc_single failed | sid=%s | input=%s", sid, input_audio_path)
             return info, (None, None)
 
     def vc_multi(
