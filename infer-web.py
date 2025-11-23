@@ -13,6 +13,7 @@ from infer.lib.train.process_ckpt import (
     merge,
     show_info,
 )
+from infer.lib.rmvpe import ensure_rmvpe_assets
 from i18n.i18n import I18nAuto
 from configs.config import Config
 from sklearn.cluster import MiniBatchKMeans
@@ -51,6 +52,7 @@ torch.manual_seed(114514)
 
 
 config = Config()
+ensure_rmvpe_assets(require_onnx=config.dml)
 vc = VC(config)
 
 

@@ -141,13 +141,13 @@ class Pipeline(object):
             f0 = f0[0].cpu().numpy()
         elif f0_method == "rmvpe":
             if not hasattr(self, "model_rmvpe"):
-                from infer.lib.rmvpe import RMVPE
+                from infer.lib.rmvpe import RMVPE, get_rmvpe_root
 
-                logger.info(
-                    "Loading rmvpe model,%s" % "%s/rmvpe.pt" % os.environ["rmvpe_root"]
-                )
+                rmvpe_root = get_rmvpe_root()
+                rmvpe_path = os.path.join(rmvpe_root, "rmvpe.pt")
+                logger.info("Loading rmvpe model,%s", rmvpe_path)
                 self.model_rmvpe = RMVPE(
-                    "%s/rmvpe.pt" % os.environ["rmvpe_root"],
+                    rmvpe_path,
                     is_half=self.is_half,
                     device=self.device,
                 )

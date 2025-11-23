@@ -39,22 +39,46 @@ def _ensure_rmvpe_file(path: str, url: str) -> str:
     """Ensure RMVPE asset exists locally; download if missing."""
     resolved_path = os.path.abspath(os.path.expanduser(path))
     os.makedirs(os.path.dirname(resolved_path), exist_ok=True)
-    if os.path.isfile(resolved_path):
+    if os.path.isfile(resolved_path) and os.path.getsize(resolved_path) > 0:
         return resolved_path
     logger.info("Downloading RMVPE weights from %s", url)
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     try:
-        with urllib.request.urlopen(url) as response, open(resolved_path, "wb") as dst:
+        with urllib.request.urlopen(request) as response, open(
+            resolved_path, "wb"
+        ) as dst:
             shutil.copyfileobj(response, dst)
     except Exception as err:  # pylint: disable=broad-exception-caught
         raise RuntimeError(
             f"Failed to download RMVPE weights from {url}. "
             f"Manually place the file at {resolved_path} and retry."
         ) from err
+    if os.path.getsize(resolved_path) == 0:
+        raise RuntimeError(
+            f"Downloaded RMVPE weight at {resolved_path} is empty. "
+            "Please re-run the download or place the file manually."
+        )
     return resolved_path
 
 
 def _get_rmvpe_root() -> str:
     return os.environ.get("rmvpe_root") or os.path.join(os.getcwd(), "assets/rmvpe")
+
+
+def get_rmvpe_root() -> str:
+    root = _get_rmvpe_root()
+    os.environ.setdefault("rmvpe_root", root)
+    return root
+
+
+def ensure_rmvpe_assets(require_onnx: bool = False) -> None:
+    """Public helper to ensure rmvpe.pt (and optional rmvpe.onnx) are present."""
+    root = get_rmvpe_root()
+    pt_url = os.environ.get("RMVPE_PT_URL", RMVPE_PT_URL_DEFAULT)
+    _ensure_rmvpe_file(os.path.join(root, "rmvpe.pt"), pt_url)
+    if require_onnx:
+        onnx_url = os.environ.get("RMVPE_ONNX_URL", RMVPE_ONNX_URL_DEFAULT)
+        _ensure_rmvpe_file(os.path.join(root, "rmvpe.onnx"), onnx_url)
 
 
 class STFT(torch.nn.Module):
@@ -539,7 +563,7 @@ class RMVPE:
         if "privateuseone" in str(device):
             import onnxruntime as ort
 
-            rmvpe_root = _get_rmvpe_root()
+            rmvpe_root = get_rmvpe_root()
             onnx_url = os.environ.get("RMVPE_ONNX_URL", RMVPE_ONNX_URL_DEFAULT)
             onnx_path = _ensure_rmvpe_file(
                 os.path.join(rmvpe_root, "rmvpe.onnx"), onnx_url
