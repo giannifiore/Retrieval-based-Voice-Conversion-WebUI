@@ -630,7 +630,7 @@ class RMVPE:
                 else:
                     self.model = get_jit_model()
             else:
-            self.model = get_default_model()
+                self.model = get_default_model()
 
             self.model = self.model.to(device)
         logger.info(
