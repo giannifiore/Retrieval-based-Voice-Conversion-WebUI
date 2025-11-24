@@ -227,7 +227,7 @@ class BiGRU(nn.Module):
         )
 
     def forward(self, x):
-        return self.gru(x)[0]
+        return self.gru(x.contiguous())[0]
 
 
 class ConvBlockRes(nn.Module):
