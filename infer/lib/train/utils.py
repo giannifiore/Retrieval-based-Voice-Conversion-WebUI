@@ -128,15 +128,15 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, load_opt=1):
         model.load_state_dict(new_state_dict, strict=False)
     logger.info("Loaded model weights")
 
-    iteration = checkpoint_dict["iteration"]
-    learning_rate = checkpoint_dict["learning_rate"]
+    iteration = checkpoint_dict.get("iteration", 0)
+    learning_rate = checkpoint_dict.get("learning_rate", 0)
     if (
         optimizer is not None and load_opt == 1
     ):  ###加载不了，如果是空的的话，重新初始化，可能还会影响lr时间表的更新，因此在train文件最外围catch
-        #   try:
-        optimizer.load_state_dict(checkpoint_dict["optimizer"])
-    #   except:
-    #     traceback.print_exc()
+        if "optimizer" in checkpoint_dict:
+            optimizer.load_state_dict(checkpoint_dict["optimizer"])
+        else:
+            logger.warning("optimizer state not found in checkpoint %s", checkpoint_path)
     logger.info("Loaded checkpoint '{}' (epoch {})".format(checkpoint_path, iteration))
     return model, optimizer, learning_rate, iteration
 
